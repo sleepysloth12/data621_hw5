@@ -1,0 +1,228 @@
+---
+title: 'Data 621 Hw #5'
+author: 'Group #3'
+date: "2024-04-18"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Wine Data
+
+### Packages
+
+```{r}
+library(dplyr)
+library(summarytools)
+library(corrplot)
+```
+
+
+
+### Importing Data
+
+```{r}
+wine_train_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/data621_hw5/main/wine-training-data.csv"))
+
+wine_test_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/data621_hw5/main/wine-evaluation-data.csv"))
+
+
+```
+
+
+
+## Part I
+
+
+### Summary Statistics and Distribution
+
+```{r}
+summary1 = dfSummary(wine_train_raw[, -which(names(wine_train_raw) == "INDEX")])
+
+
+print(summary1, method = "render")
+
+view(summary1)
+```
+
+
+### Correlation Matrix
+
+```{r}
+numeric_data = wine_train_raw %>% 
+  select(-TARGET) %>% 
+  select_if(is.numeric)  
+
+correlation_matrix = cor(numeric_data, use = "complete.obs")  
+
+print(correlation_matrix)
+
+
+
+corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, addCoef.col = "black")
+```
+
+Weak Correlations Mostly: 
+
+Most variables exhibit very weak correlations with each other, which are close to 0. This suggests no strong linear relationships between most pairs of features.
+
+LabelAppeal and STARS: The strongest correlation observed is between LabelAppeal and STARS (0.3189). This suggests a moderate positive relationship, where wines with more appealing labels tend to be rated higher by experts.
+
+
+FixedAcidity and AcidIndex: There's a noticeable positive correlation between FixedAcidity and AcidIndex (0.1542). Although not very strong, it indicates that as fixed acidity increases, the overall acidity index tends to increase as well.
+
+
+Alcohol and STARS: Alcohol content shows a modest correlation with STARS (0.0649), suggesting that higher alcohol content could be slightly associated with higher ratings by experts.
+
+
+Negative Correlations: There are several mild negative correlations, such as AcidIndex and STARS (-0.0955), indicating that higher acid index values may slightly correlate with lower expert ratings.
+
+## Part II
+
+### Looking For Missing Values and Fixing it 
+
+The following are missing:
+
+616 Records of `ResidualSugar` (4.8%)
+638 Records of `Chlorides` (5%)
+647 Records of `FreeSulfurDioxide` (5.1%)
+682 Records of `TotalSulfurDioxide` (5.3%)
+395 Records of `pH` (3.1%)
+1210 Records of `Sulphates` (9.5%)
+653 Records of `Alcohol` (5.1%)
+3359 Records of `STARS` (26.3%)
+
+All of these columns (with the exception of `STARS`) are normally distributed. 
+
+To fill in the missing values, I will use mean and standard deviation by using the `rnorm()` function and creating a function that will process these columns to fill in the missing data.
+
+```{r}
+fill_missing_with_normal = function(data, column_name) {
+ 
+  column_data = data[[column_name]]
+  
+  mean_val = mean(column_data, na.rm = TRUE)
+  sd_val = sd(column_data, na.rm = TRUE)
+  
+  num_missing = sum(is.na(column_data))
+  
+  new_values = rnorm(num_missing, mean = mean_val, sd = sd_val)
+  
+  data[[column_name]][is.na(column_data)] = new_values
+  
+  return(data)
+}
+
+columns_with_missing = c("ResidualSugar", "Chlorides", "FreeSulfurDioxide",
+                          "TotalSulfurDioxide", "pH", "Sulphates", "Alcohol")
+
+for (column in columns_with_missing) {
+  wine_train_raw = fill_missing_with_normal(wine_train_raw, column)
+}
+
+
+summary2 = dfSummary(wine_train_raw[, -which(names(wine_train_raw) == "INDEX")])
+
+
+print(summary2, method = "render")
+
+view(summary2)
+```
+
+Now, there are no more missing values for the normally distributed columns.
+
+Only 3359 (26.3%) of records now are missing `STARS` label.
+
+I will use the existing probabilities of the distribution of `STARS` data to do bootstraping to generate the missing values.
+
+```{r}
+
+fill_missing_categorical = function(data, column_name, levels, probabilities) {
+  
+  column_data = data[[column_name]]
+  
+ 
+  num_missing = sum(is.na(column_data))
+  
+  
+  new_values = sample(levels, num_missing, replace = TRUE, prob = probabilities)
+  
+  
+  data[[column_name]][is.na(column_data)] <- new_values
+  
+  return(data)
+}
+
+
+stars_levels = c(1, 2, 3, 4)
+
+
+stars_probabilities = c(32.2, 37.8, 23.4, 6.5) / 100
+
+
+wine_train_raw = fill_missing_categorical(wine_train_raw, "STARS", stars_levels, stars_probabilities)
+
+
+
+summary3 = dfSummary(wine_train_raw[, -which(names(wine_train_raw) == "INDEX")])
+
+
+print(summary3, method = "render")
+
+view(summary3)
+
+```
+
+No missing values, and we keep the distribution patterns that originally existed. Nice!
+
+
+### Transforming the Data
+
+Adding interaction terms can help to capture the combined effects of variables.
+
+Acidity Interactions: We will explore interactions between `FixedAcidity`, `VolatileAcidity`, and `CitricAcid`.
+
+`Sulfur Dioxide` and `Free Sulfur Dioxide`: These could interact with other chemical properties like `pH` and `Alcohol` content, affecting wine stability and taste.
+
+Sulfur Ratio: The ratio of `FreeSulfurDioxide` to `TotalSulfurDioxide` might give insights into how bound versus free sulfur dioxide impacts wine quality.
+
+Sugar to Acid Ratio: We will use `ResidualSugar ` to `TotalAcidity` ( `TotalAcidity` as a sum of `FixedAcidity` and other acid measures).
+
+```{r}
+
+wine_train_clean = wine_train_raw %>%
+  mutate(
+    
+    FixedAcid_VolatileAcid = FixedAcidity * VolatileAcidity,
+    Alcohol_CitricAcid = Alcohol * CitricAcid,
+    Alcohol_pH = Alcohol * pH,
+    
+    
+    SugarToAcidRatio = ResidualSugar / (FixedAcidity + CitricAcid), 
+    FreeToTotalSulfur = FreeSulfurDioxide / TotalSulfurDioxide,
+    
+    
+    Acid_Alcohol_Index = (FixedAcidity * VolatileAcidity) / Alcohol
+  )
+
+
+wine_train_clean = wine_train_clean %>%
+  select(TARGET,  
+         FixedAcid_VolatileAcid,  
+         Alcohol_CitricAcid,     
+         Alcohol_pH,             
+         SugarToAcidRatio,        
+         FreeToTotalSulfur,       
+         Acid_Alcohol_Index,      
+         AcidIndex, Alcohol, Chlorides, CitricAcid, Density,
+         FixedAcidity, FreeSulfurDioxide, LabelAppeal, pH,
+         ResidualSugar, STARS, Sulphates, TotalSulfurDioxide, VolatileAcidity
+        )
+
+```
+
+
+
