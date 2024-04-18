@@ -222,7 +222,32 @@ wine_train_clean = wine_train_clean %>%
          ResidualSugar, STARS, Sulphates, TotalSulfurDioxide, VolatileAcidity
         )
 
+
 ```
 
+### New Correlation Matrix
 
+```{r}
+cor_matrix2 = cor(wine_train_clean %>% select(-TARGET), use = "complete.obs")
+
+
+
+```
+
+Given the high correlations between the interaction terms and their original variables, I will remove original variables.
+
+```{r}
+wine_train_clean = wine_train_clean %>%
+  select(TARGET,  
+         FixedAcid_VolatileAcid,  
+         Alcohol_CitricAcid,     
+         Alcohol_pH,             
+         SugarToAcidRatio,        
+         FreeToTotalSulfur,       
+         Acid_Alcohol_Index,      
+         AcidIndex,  Chlorides, Density,
+          FreeSulfurDioxide, LabelAppeal,
+         ResidualSugar, STARS
+        )
+```
 
