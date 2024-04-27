@@ -11,12 +11,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Wine Data
 
+Goal: to Build a count regression model to predict the number of cases that will be sold given certain properties of wine.
+
 ### Packages
 
 ```{r}
 library(dplyr)
+library(tidyr)
+library(ggplot2)
 library(summarytools)
 library(corrplot)
+library(gt)
 ```
 
 
@@ -28,12 +33,130 @@ wine_train_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/dat
 
 wine_test_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/data621_hw5/main/wine-evaluation-data.csv"))
 
-
 ```
 
 
-
 ## Part I
+
+#WILL COME BACK AND ADD MORE WORDS (Marjete)
+
+```{r}
+summary_stats <- wine_train_raw %>%
+  summarise(
+    Mean_Target = mean(TARGET, na.rm = TRUE),
+    SD_Target = sd(TARGET, na.rm = TRUE),
+    Median_Target = median(TARGET, na.rm = TRUE),
+    Mean_AcidIndex = mean(AcidIndex, na.rm = TRUE),
+    SD_AcidIndex = sd(AcidIndex, na.rm = TRUE),
+    Median_AcidIndex = median(AcidIndex, na.rm = TRUE),
+    Mean_Alcohol = mean(Alcohol, na.rm = TRUE),
+    SD_Alcohol = sd(Alcohol, na.rm = TRUE),
+    Median_Alcohol = median(Alcohol, na.rm = TRUE),
+    Mean_Chlorides = mean(Chlorides, na.rm = TRUE),
+    SD_Chlorides = sd(Chlorides, na.rm = TRUE),
+    Median_Chlorides = median(Chlorides, na.rm = TRUE),
+    Mean_CitricAcid = mean(CitricAcid, na.rm = TRUE),
+    SD_CitricAcid = sd(CitricAcid, na.rm = TRUE),
+    Median_CitricAcid = median(CitricAcid, na.rm = TRUE),
+    Mean_Density = mean(Density, na.rm = TRUE),
+    SD_Density = sd(Density, na.rm = TRUE),
+    Median_Density = median(Density, na.rm = TRUE),
+    Mean_FixedAcidity = mean(FixedAcidity, na.rm = TRUE),
+    SD_FixedAcidity = sd(FixedAcidity, na.rm = TRUE),
+    Median_FixedAcidity = median(FixedAcidity, na.rm = TRUE),
+    Mean_FreeSulfurDioxide = mean(FreeSulfurDioxide, na.rm = TRUE),
+    SD_FreeSulfurDioxide = sd(FreeSulfurDioxide, na.rm = TRUE),
+    Median_FreeSulfurDioxide = median(FreeSulfurDioxide, na.rm = TRUE),
+    Mean_LabelAppeal = mean(LabelAppeal, na.rm = TRUE),
+    SD_LabelAppeal = sd(LabelAppeal, na.rm = TRUE),
+    Median_LabelAppeal = median(LabelAppeal, na.rm = TRUE),
+    Mean_ResidualSugar = mean(ResidualSugar, na.rm = TRUE),
+    SD_ResidualSugar = sd(ResidualSugar, na.rm = TRUE),
+    Median_ResidualSugar = median(ResidualSugar, na.rm = TRUE),
+    Mean_STARS = mean(STARS, na.rm = TRUE),
+    SD_STARS = sd(STARS, na.rm = TRUE),
+    Median_STARS = median(STARS, na.rm = TRUE),
+    Mean_Sulphates = mean(Sulphates, na.rm = TRUE),
+    SD_Sulphates = sd(Sulphates, na.rm = TRUE),
+    Median_Sulphates = median(Sulphates, na.rm = TRUE),
+    Mean_TotalSulfurDioxide = mean(TotalSulfurDioxide, na.rm = TRUE),
+    SD_TotalSulfurDioxide = sd(TotalSulfurDioxide, na.rm = TRUE),
+    Median_TotalSulfurDioxide = median(TotalSulfurDioxide, na.rm = TRUE),
+    Mean_VolatileAcidity = mean(VolatileAcidity, na.rm = TRUE),
+    SD_VolatileAcidity = sd(VolatileAcidity, na.rm = TRUE),
+    Median_VolatileAcidity = median(VolatileAcidity, na.rm = TRUE),
+    Mean_pH = mean(pH, na.rm = TRUE),
+    SD_pH = sd(pH, na.rm = TRUE),
+    Median_pH = median(pH, na.rm = TRUE)
+  ) %>%
+  pivot_longer(everything(), names_to = "Statistic", values_to = "Value") %>%
+  separate(Statistic, into = c("Measure", "Variable"), sep = "_") %>%
+  pivot_wider(names_from = Measure, values_from = Value) %>%
+  dplyr::select(Variable, Mean, SD, Median) %>%
+  mutate(Variable = case_when(
+    Variable == "TARGET" ~ "Target",
+    Variable == "AcidIndex" ~ "Acid Index",
+    Variable == "Alcohol" ~ "Alcohol Content",
+    Variable == "Chloride" ~ "Chloride Concentration",
+    Variable == "CitricAcid" ~ "Citric Acid Content",
+    Variable == "Density" ~ "Density",
+    Variable == "FixedAcidity" ~ "Fixed Acidity",
+    Variable == "FreeSulfurDioxide" ~ "Free Sulfur Dioxide",
+    Variable == "LabelAppeal" ~ "Label Appeal",
+    Variable == "ResidualSugar" ~ "Residual Sugar",
+    Variable == "STARS" ~ "STARS",
+    Variable == "Sulphates" ~ "Sulphates Content",
+    Variable == "TotalSulfurDioxide" ~ "Total Sulfur Dioxide",
+    Variable == "VolatileAcidity" ~ "Volatile Acidity",
+    Variable == "pH" ~ "pH",
+    TRUE ~ Variable
+  ))
+
+summary_stats %>%
+  gt() %>%
+  tab_header(
+    title = "Summary Statistics of Predictor Variables"
+  ) %>%
+  cols_label(
+    Variable = "Variable",
+    Mean = "Mean",
+    SD = "Standard Deviation",
+    Median = "Median"
+  )
+
+```
+```{r}
+train_dat_long = wine_train_raw %>%
+  dplyr::select(-INDEX) %>%  
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value")
+
+train_dat_long <- train_dat_long[complete.cases(train_dat_long$Value), ]
+
+options(repr.plot.width=20, repr.plot.height=20) 
+#why are graphs not changing in size 
+ggplot(train_dat_long, aes(x = Value)) +
+  geom_histogram(bins = 30, fill = "blue", alpha = 0.7) +
+  facet_wrap(~ Variable, scales = "free", ncol = 3) + 
+  theme_minimal() +
+  labs(title = "Distribution of Predictor Variables", x = "Value", y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+```{r}
+#box plot not including the index column
+ggplot(train_dat_long, aes(x = Variable, y = Value)) +
+  geom_boxplot(fill = "blue", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Box Plot of Predictor Variables", x = "Variable", y = "Value") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        text = element_text(size = 12)) # Adjust font size for better readability
+```
+```
+
+There is missing data in the following columns: ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol, STARS
+```{r}
+colSums(is.na(wine_train_raw))
+
+```
 
 
 ### Summary Statistics and Distribution
