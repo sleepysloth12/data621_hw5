@@ -379,14 +379,22 @@ wine_train_clean = wine_train_clean %>%
 ### Poisson Regression Model One
 
 ```{r}
-poisson_1 = glm()
+poisson_1 = glm(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + Alcohol_pH + AcidIndex + Chlorides + Density + FreeSulfurDioxide + LabelAppeal + ResidualSugar + STARS, family = poisson, data = wine_train_clean)
+
+summary(poisson_1)
 ```
+
+For the first Poisson Regression Model, I selected all variables that would work in a lm() function. The reason why I omitted certain variables was that the lm() would not work with "Inf" values present in the created ratios and indexes.
 
 ### Poisson Regression Model Two
 
 ```{r}
-poisson_2 = glm()
+poisson_2 = glm(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + AcidIndex + Chlorides + Density + FreeSulfurDioxide + LabelAppeal + STARS, family = poisson, data = wine_train_clean)
+
+summary(poisson_2)
 ```
+
+For the second poisson regression model, I selected all the predictors from the first model which were labeled as significant predictors.
 
 ### Negative Binomial Regression Model One
 
