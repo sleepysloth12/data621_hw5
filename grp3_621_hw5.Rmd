@@ -374,3 +374,48 @@ wine_train_clean = wine_train_clean %>%
         )
 ```
 
+## Part II
+
+### Poisson Regression Model One
+
+```{r}
+poisson_1 = glm()
+```
+
+### Poisson Regression Model Two
+
+```{r}
+poisson_2 = glm()
+```
+
+### Negative Binomial Regression Model One
+
+```{r}
+nb_1 = glm()
+```
+
+### Negative Binomial Regression Model Two
+
+```{r}
+nb_2 = glm()
+```
+
+### Multiple Linear Regression Model One
+
+```{r}
+ml_1 = lm(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + Alcohol_pH + AcidIndex + Chlorides + Density + FreeSulfurDioxide + LabelAppeal + ResidualSugar + STARS, data = wine_train_clean) 
+
+summary(ml_1)
+```
+
+From the wine_train_clean, I selected all variables that would work in a lm() function. The reason why I omitted certain variables was that the lm() would not work with "Inf" values present in the created ratios and indexes.
+
+### Multiple Linear Regression Model Two
+
+```{r}
+ml_2 = step(ml_1)
+
+summary(ml_2)
+```
+
+Using the initial multiple linear regression, I applied the step() function to create a more filtered down mutiple linear regression model.
