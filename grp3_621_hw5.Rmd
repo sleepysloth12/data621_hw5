@@ -399,14 +399,22 @@ For the second poisson regression model, I selected all the predictors from the 
 ### Negative Binomial Regression Model One
 
 ```{r}
-nb_1 = glm()
+nb_1 = MASS::glm.nb(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + Alcohol_pH + AcidIndex + Chlorides + Density + FreeSulfurDioxide + LabelAppeal + ResidualSugar + STARS, data = wine_train_clean)
+
+summary(nb_1)
 ```
+
+For the first negative binomial regression
 
 ### Negative Binomial Regression Model Two
 
 ```{r}
-nb_2 = glm()
+nb_2 = MASS::glm.nb(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + AcidIndex + Chlorides + Density + FreeSulfurDioxide + LabelAppeal + STARS, data = wine_train_clean)
+
+summary(nb_2)
 ```
+
+Similarly, I selected the variables that were labeled as significant predictors.
 
 ### Multiple Linear Regression Model One
 
