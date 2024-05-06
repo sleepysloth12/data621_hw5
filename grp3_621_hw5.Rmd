@@ -22,6 +22,9 @@ library(ggplot2)
 library(summarytools)
 library(corrplot)
 library(gt)
+library(pROC)
+library(MASS)
+library(glue)
 ```
 
 
@@ -106,7 +109,7 @@ summary_stats <- wine_train_raw %>%
     Variable == "ResidualSugar" ~ "Residual Sugar",
     Variable == "STARS" ~ "STARS",
     Variable == "Sulphates" ~ "Sulphates Content",
-    Variable == "TotalSulfurDioxide" ~ "Total Sulfur Dioxide",
+    Variable == "TotalSulfurDioxide" ~ "Total Sulfur Dioxide", 
     Variable == "VolatileAcidity" ~ "Volatile Acidity",
     Variable == "pH" ~ "pH",
     TRUE ~ Variable
@@ -150,12 +153,11 @@ ggplot(train_dat_long, aes(x = Variable, y = Value)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         text = element_text(size = 12)) # Adjust font size for better readability
 ```
-```
+
 
 There is missing data in the following columns: ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol, STARS
 ```{r}
 colSums(is.na(wine_train_raw))
-
 ```
 
 
@@ -246,6 +248,10 @@ for (column in columns_with_missing) {
   wine_train_raw = fill_missing_with_normal(wine_train_raw, column)
 }
 
+for (column in columns_with_missing) {
+  wine_test_raw = fill_missing_with_normal(wine_test_raw, column)
+}
+
 
 summary2 = dfSummary(wine_train_raw[, -which(names(wine_train_raw) == "INDEX")])
 
@@ -287,7 +293,7 @@ stars_probabilities = c(32.2, 37.8, 23.4, 6.5) / 100
 
 
 wine_train_raw = fill_missing_categorical(wine_train_raw, "STARS", stars_levels, stars_probabilities)
-
+wine_test_raw = fill_missing_categorical(wine_test_raw, "STARS", stars_levels, stars_probabilities)
 
 
 summary3 = dfSummary(wine_train_raw[, -which(names(wine_train_raw) == "INDEX")])
@@ -333,7 +339,36 @@ wine_train_clean = wine_train_raw %>%
 
 
 wine_train_clean = wine_train_clean %>%
-  select(TARGET,  
+  dplyr::select(TARGET,  
+         FixedAcid_VolatileAcid,  
+         Alcohol_CitricAcid,     
+         Alcohol_pH,             
+         SugarToAcidRatio,        
+         FreeToTotalSulfur,       
+         Acid_Alcohol_Index,      
+         AcidIndex, Alcohol, Chlorides, CitricAcid, Density,
+         FixedAcidity, FreeSulfurDioxide, LabelAppeal, pH,
+         ResidualSugar, STARS, Sulphates, TotalSulfurDioxide, VolatileAcidity
+        )
+
+wine_test_clean = wine_test_raw %>%
+  mutate(
+    
+    FixedAcid_VolatileAcid = FixedAcidity * VolatileAcidity,
+    Alcohol_CitricAcid = Alcohol * CitricAcid,
+    Alcohol_pH = Alcohol * pH,
+    
+    
+    SugarToAcidRatio = ResidualSugar / (FixedAcidity + CitricAcid), 
+    FreeToTotalSulfur = FreeSulfurDioxide / TotalSulfurDioxide,
+    
+    
+    Acid_Alcohol_Index = (FixedAcidity * VolatileAcidity) / Alcohol
+  )
+
+
+wine_test_clean = wine_test_clean %>%
+  dplyr::select(TARGET,  
          FixedAcid_VolatileAcid,  
          Alcohol_CitricAcid,     
          Alcohol_pH,             
@@ -434,4 +469,80 @@ ml_2 = step(ml_1)
 summary(ml_2)
 ```
 
-Using the initial multiple linear regression, I applied the step() function to create a more filtered down mutiple linear regression model.
+Using the initial multiple linear regression, I applied the step() function to create a more filtered down multiple linear regression model.
+
+# Selecting the Most Appropriate Count Regression Model
+
+## Model Validation
+
+### MSE Calculations
+
+```{r}
+predicted_vals_p1 <- predict(poisson_1, type = 'response')
+observed_vals_p1 <- wine_train_clean$TARGET
+res_p1 <- observed_vals_p1 - predicted_vals_p1
+mse_p1 <- mean(res_p1**2)
+
+predicted_vals_p2 <- predict(poisson_2, type = 'response')
+observed_vals_p2 <- wine_train_clean$TARGET
+res_p2 <- observed_vals_p2 - predicted_vals_p2
+mse_p2 <- mean(res_p2**2)
+
+predicted_vals_nb_1 <- predict(nb_1, type = 'response')
+observed_vals_nb_1 <- wine_train_clean$TARGET
+res_nb_1 <- observed_vals_nb_1 - predicted_vals_nb_1
+mse_nb_1 <- mean(res_nb_1**2)
+
+predicted_vals_nb_2 <- predict(nb_2, type = 'response')
+observed_vals_nb_2 <- wine_train_clean$TARGET
+res_nb_2 <- observed_vals_nb_2 - predicted_vals_nb_2
+mse_nb_2 <- mean(res_nb_2**2)
+
+predicted_vals_ml_1 <- predict(ml_1, type = 'response')
+observed_vals_ml_1 <- wine_train_clean$TARGET
+rse_ml_1 <- observed_vals_ml_1 - predicted_vals_ml_1
+mse_ml_1 <- mean(rse_ml_1**2)
+
+predicted_vals_ml_2 <- predict(ml_2, type = 'response')
+observed_vals_ml_2 <- wine_train_clean$TARGET
+rse_ml_2 <- observed_vals_ml_2 - predicted_vals_ml_2
+mse_ml_2 <- mean(rse_ml_2**2)
+```
+
+```{r}
+cat("Poisson 1 MSE:", mse_p1, "\n")
+cat("Poisson 2 MSE:", mse_p2, "\n")
+cat("Negative Binomial 1 MSE:", mse_nb_1, "\n")
+cat("Negative Binomial 2 MSE:", mse_nb_2, "\n")
+cat("Linear Regression 1 MSE:", mse_ml_1, "\n")
+cat("Linear Regression 2 MSE:", mse_ml_2, "\n")
+```
+
+### Plotted residuals
+
+```{r}
+plot(poisson_1)
+plot(poisson_2)
+plot(nb_1)
+plot(nb_2)
+plot(ml_1)
+plot(ml_2)
+```
+
+Based on the analyses performed, it appears that all count models generated exhibit similar performance at face value. Specifically, all models generated yielded similar deviance values, AIC values, and MSE values. That said, the negative binomial models tended to produce slightly better metrics, overall compared to the Poisson models. However, I do not believe a negative binomial model is particularly necessary for our data, as our target variable is likely more aligned with a Poisson or normal distribution. Furthermore, our model is not overdispersed, as evident by the fact that the residual and null deviance are smaller than their respective degrees of freedom. Finally, the maximum number of iterations were reached for both negative binomial models, suggesting difficulties in convergence. For these reasons, I will choose to use a Poisson model for our final evaluation, despite the fact that the negative binomial models present slightly better metrics. Specifically, I will use second poisson model, as the metrics for that model are slightly superior.
+
+I will also mention that I do believe the linear regression models are good fits for our data, as well. As previously mentioned, I believe our target variable follows a rather normal distribution, as a result of the large sample size. In addition, our residual plots do show some violations in normality assumptions (i.e., some non-linearity, and the presence of outliers impacting skewness), but we can see that the assumptions are not overly violated and could likely be rectified via transformations or outlier removal. That said, the current linear models do appear to be poor fits, however, with R^2 values around .25.
+
+### Running Predictions on the Test Dataset
+
+```{r}
+TARGET <- predict(poisson_2, newdata = wine_test_clean, type = 'response')
+
+wine_test_clean <- wine_test_clean %>% dplyr::select(-TARGET)
+
+wine_test_clean_scored <- cbind(wine_test_clean, TARGET)
+
+hist(wine_test_clean_scored$TARGET)
+
+```
+
