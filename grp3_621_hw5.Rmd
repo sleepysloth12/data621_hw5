@@ -3,6 +3,9 @@ title: 'Data 621 Hw #5'
 author: 'Group #3'
 date: "2024-04-18"
 output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Wine Data
 
-Goal: to Build a count regression model to predict the number of cases that will be sold given certain properties of wine.
+Goal: to Build a count regression model to predict the number of cases
+that will be sold given certain properties of wine.
 
 ### Packages
 
@@ -27,8 +31,6 @@ library(MASS)
 library(glue)
 ```
 
-
-
 ### Importing Data
 
 ```{r}
@@ -37,7 +39,6 @@ wine_train_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/dat
 wine_test_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/data621_hw5/main/wine-evaluation-data.csv"))
 
 ```
-
 
 ## Part I
 
@@ -128,6 +129,7 @@ summary_stats %>%
   )
 
 ```
+
 ```{r}
 train_dat_long = wine_train_raw %>%
   dplyr::select(-INDEX) %>%  
@@ -144,6 +146,7 @@ ggplot(train_dat_long, aes(x = Value)) +
   labs(title = "Distribution of Predictor Variables", x = "Value", y = "Count") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 ```{r}
 #box plot not including the index column
 ggplot(train_dat_long, aes(x = Variable, y = Value)) +
@@ -154,12 +157,14 @@ ggplot(train_dat_long, aes(x = Variable, y = Value)) +
         text = element_text(size = 12)) # Adjust font size for better readability
 ```
 
+There is missing data in the following columns: ResidualSugar,
+Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates,
+Alcohol, STARS
 
-There is missing data in the following columns: ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol, STARS
 ```{r}
+
 colSums(is.na(wine_train_raw))
 ```
-
 
 ### Summary Statistics and Distribution
 
@@ -172,12 +177,11 @@ print(summary1, method = "render")
 view(summary1)
 ```
 
-
 ### Correlation Matrix
 
 ```{r}
 numeric_data = wine_train_raw %>% 
-  select(-TARGET) %>% 
+  dplyr::select(-TARGET) %>% 
   select_if(is.numeric)  
 
 correlation_matrix = cor(numeric_data, use = "complete.obs")  
@@ -190,39 +194,48 @@ corrplot(correlation_matrix, method = "color", type = "upper", order = "hclust",
          tl.col = "black", tl.srt = 45, addCoef.col = "black")
 ```
 
-Weak Correlations Mostly: 
+Weak Correlations Mostly:
 
-Most variables exhibit very weak correlations with each other, which are close to 0. This suggests no strong linear relationships between most pairs of features.
+Most variables exhibit very weak correlations with each other, which are
+close to 0. This suggests no strong linear relationships between most
+pairs of features.
 
-LabelAppeal and STARS: The strongest correlation observed is between LabelAppeal and STARS (0.3189). This suggests a moderate positive relationship, where wines with more appealing labels tend to be rated higher by experts.
+LabelAppeal and STARS: The strongest correlation observed is between
+LabelAppeal and STARS (0.3189). This suggests a moderate positive
+relationship, where wines with more appealing labels tend to be rated
+higher by experts.
 
+FixedAcidity and AcidIndex: There's a noticeable positive correlation
+between FixedAcidity and AcidIndex (0.1542). Although not very strong,
+it indicates that as fixed acidity increases, the overall acidity index
+tends to increase as well.
 
-FixedAcidity and AcidIndex: There's a noticeable positive correlation between FixedAcidity and AcidIndex (0.1542). Although not very strong, it indicates that as fixed acidity increases, the overall acidity index tends to increase as well.
+Alcohol and STARS: Alcohol content shows a modest correlation with STARS
+(0.0649), suggesting that higher alcohol content could be slightly
+associated with higher ratings by experts.
 
-
-Alcohol and STARS: Alcohol content shows a modest correlation with STARS (0.0649), suggesting that higher alcohol content could be slightly associated with higher ratings by experts.
-
-
-Negative Correlations: There are several mild negative correlations, such as AcidIndex and STARS (-0.0955), indicating that higher acid index values may slightly correlate with lower expert ratings.
+Negative Correlations: There are several mild negative correlations,
+such as AcidIndex and STARS (-0.0955), indicating that higher acid index
+values may slightly correlate with lower expert ratings.
 
 ## Part II
 
-### Looking For Missing Values and Fixing it 
+### Looking For Missing Values and Fixing it
 
 The following are missing:
 
-616 Records of `ResidualSugar` (4.8%)
-638 Records of `Chlorides` (5%)
-647 Records of `FreeSulfurDioxide` (5.1%)
-682 Records of `TotalSulfurDioxide` (5.3%)
-395 Records of `pH` (3.1%)
-1210 Records of `Sulphates` (9.5%)
-653 Records of `Alcohol` (5.1%)
-3359 Records of `STARS` (26.3%)
+616 Records of `ResidualSugar` (4.8%) 638 Records of `Chlorides` (5%)
+647 Records of `FreeSulfurDioxide` (5.1%) 682 Records of
+`TotalSulfurDioxide` (5.3%) 395 Records of `pH` (3.1%) 1210 Records of
+`Sulphates` (9.5%) 653 Records of `Alcohol` (5.1%) 3359 Records of
+`STARS` (26.3%)
 
-All of these columns (with the exception of `STARS`) are normally distributed. 
+All of these columns (with the exception of `STARS`) are normally
+distributed.
 
-To fill in the missing values, I will use mean and standard deviation by using the `rnorm()` function and creating a function that will process these columns to fill in the missing data.
+To fill in the missing values, I will use mean and standard deviation by
+using the `rnorm()` function and creating a function that will process
+these columns to fill in the missing data.
 
 ```{r}
 fill_missing_with_normal = function(data, column_name) {
@@ -261,11 +274,13 @@ print(summary2, method = "render")
 view(summary2)
 ```
 
-Now, there are no more missing values for the normally distributed columns.
+Now, there are no more missing values for the normally distributed
+columns.
 
 Only 3359 (26.3%) of records now are missing `STARS` label.
 
-I will use the existing probabilities of the distribution of `STARS` data to do bootstraping to generate the missing values.
+I will use the existing probabilities of the distribution of `STARS`
+data to do bootstraping to generate the missing values.
 
 ```{r}
 
@@ -305,20 +320,27 @@ view(summary3)
 
 ```
 
-No missing values, and we keep the distribution patterns that originally existed. Nice!
-
+No missing values, and we keep the distribution patterns that originally
+existed. Nice!
 
 ### Transforming the Data
 
-Adding interaction terms can help to capture the combined effects of variables.
+Adding interaction terms can help to capture the combined effects of
+variables.
 
-Acidity Interactions: We will explore interactions between `FixedAcidity`, `VolatileAcidity`, and `CitricAcid`.
+Acidity Interactions: We will explore interactions between
+`FixedAcidity`, `VolatileAcidity`, and `CitricAcid`.
 
-`Sulfur Dioxide` and `Free Sulfur Dioxide`: These could interact with other chemical properties like `pH` and `Alcohol` content, affecting wine stability and taste.
+`Sulfur Dioxide` and `Free Sulfur Dioxide`: These could interact with
+other chemical properties like `pH` and `Alcohol` content, affecting
+wine stability and taste.
 
-Sulfur Ratio: The ratio of `FreeSulfurDioxide` to `TotalSulfurDioxide` might give insights into how bound versus free sulfur dioxide impacts wine quality.
+Sulfur Ratio: The ratio of `FreeSulfurDioxide` to `TotalSulfurDioxide`
+might give insights into how bound versus free sulfur dioxide impacts
+wine quality.
 
-Sugar to Acid Ratio: We will use `ResidualSugar ` to `TotalAcidity` ( `TotalAcidity` as a sum of `FixedAcidity` and other acid measures).
+Sugar to Acid Ratio: We will use `ResidualSugar` to `TotalAcidity` (
+`TotalAcidity` as a sum of `FixedAcidity` and other acid measures).
 
 ```{r}
 
@@ -386,17 +408,19 @@ wine_test_clean = wine_test_clean %>%
 ### New Correlation Matrix
 
 ```{r}
-cor_matrix2 = cor(wine_train_clean %>% select(-TARGET), use = "complete.obs")
+
+cor_matrix2 = cor(wine_train_clean %>% dplyr::select(-TARGET), use = "complete.obs")
 
 
 
 ```
 
-Given the high correlations between the interaction terms and their original variables, I will remove original variables.
+Given the high correlations between the interaction terms and their
+original variables, I will remove original variables.
 
 ```{r}
 wine_train_clean = wine_train_clean %>%
-  select(TARGET,  
+  dplyr::select(TARGET,  
          FixedAcid_VolatileAcid,  
          Alcohol_CitricAcid,     
          Alcohol_pH,             
@@ -409,7 +433,7 @@ wine_train_clean = wine_train_clean %>%
         )
 ```
 
-## Part II
+## Part III
 
 ### Poisson Regression Model One
 
@@ -419,7 +443,10 @@ poisson_1 = glm(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + Alcohol_p
 summary(poisson_1)
 ```
 
-For the first Poisson Regression Model, I selected all variables that would work in a lm() function. The reason why I omitted certain variables was that the lm() would not work with "Inf" values present in the created ratios and indexes.
+For the first Poisson Regression Model, I selected all variables that
+would work in a lm() function. The reason why I omitted certain
+variables was that the lm() would not work with "Inf" values present in
+the created ratios and indexes.
 
 ### Poisson Regression Model Two
 
@@ -429,7 +456,8 @@ poisson_2 = glm(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + AcidIndex
 summary(poisson_2)
 ```
 
-For the second poisson regression model, I selected all the predictors from the first model which were labeled as significant predictors.
+For the second poisson regression model, I selected all the predictors
+from the first model which were labeled as significant predictors.
 
 ### Negative Binomial Regression Model One
 
@@ -449,7 +477,8 @@ nb_2 = MASS::glm.nb(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + AcidI
 summary(nb_2)
 ```
 
-Similarly, I selected the variables that were labeled as significant predictors.
+Similarly, I selected the variables that were labeled as significant
+predictors.
 
 ### Multiple Linear Regression Model One
 
@@ -459,7 +488,10 @@ ml_1 = lm(TARGET ~ FixedAcid_VolatileAcid + Alcohol_CitricAcid + Alcohol_pH + Ac
 summary(ml_1)
 ```
 
-From the wine_train_clean, I selected all variables that would work in a lm() function. The reason why I omitted certain variables was that the lm() would not work with "Inf" values present in the created ratios and indexes.
+From the wine_train_clean, I selected all variables that would work in a
+lm() function. The reason why I omitted certain variables was that the
+lm() would not work with "Inf" values present in the created ratios and
+indexes.
 
 ### Multiple Linear Regression Model Two
 
@@ -469,7 +501,9 @@ ml_2 = step(ml_1)
 summary(ml_2)
 ```
 
-Using the initial multiple linear regression, I applied the step() function to create a more filtered down multiple linear regression model.
+Using the initial multiple linear regression, I applied the step()
+function to create a more filtered down multiple linear regression
+model.
 
 # Selecting the Most Appropriate Count Regression Model
 
@@ -529,9 +563,32 @@ plot(ml_1)
 plot(ml_2)
 ```
 
-Based on the analyses performed, it appears that all count models generated exhibit similar performance at face value. Specifically, all models generated yielded similar deviance values, AIC values, and MSE values. That said, the negative binomial models tended to produce slightly better metrics, overall compared to the Poisson models. However, I do not believe a negative binomial model is particularly necessary for our data, as our target variable is likely more aligned with a Poisson or normal distribution. Furthermore, our model is not overdispersed, as evident by the fact that the residual and null deviance are smaller than their respective degrees of freedom. Finally, the maximum number of iterations were reached for both negative binomial models, suggesting difficulties in convergence. For these reasons, I will choose to use a Poisson model for our final evaluation, despite the fact that the negative binomial models present slightly better metrics. Specifically, I will use second poisson model, as the metrics for that model are slightly superior.
+Based on the analyses performed, it appears that all count models
+generated exhibit similar performance at face value. Specifically, all
+models generated yielded similar deviance values, AIC values, and MSE
+values. That said, the negative binomial models tended to produce
+slightly better metrics, overall compared to the Poisson models.
+However, I do not believe a negative binomial model is particularly
+necessary for our data, as our target variable is likely more aligned
+with a Poisson or normal distribution. Furthermore, our model is not
+overdispersed, as evident by the fact that the residual and null
+deviance are smaller than their respective degrees of freedom. Finally,
+the maximum number of iterations were reached for both negative binomial
+models, suggesting difficulties in convergence. For these reasons, I
+will choose to use a Poisson model for our final evaluation, despite the
+fact that the negative binomial models present slightly better metrics.
+Specifically, I will use second poisson model, as the metrics for that
+model are slightly superior.
 
-I will also mention that I do believe the linear regression models are good fits for our data, as well. As previously mentioned, I believe our target variable follows a rather normal distribution, as a result of the large sample size. In addition, our residual plots do show some violations in normality assumptions (i.e., some non-linearity, and the presence of outliers impacting skewness), but we can see that the assumptions are not overly violated and could likely be rectified via transformations or outlier removal. That said, the current linear models do appear to be poor fits, however, with R^2 values around .25.
+I will also mention that I do believe the linear regression models are
+good fits for our data, as well. As previously mentioned, I believe our
+target variable follows a rather normal distribution, as a result of the
+large sample size. In addition, our residual plots do show some
+violations in normality assumptions (i.e., some non-linearity, and the
+presence of outliers impacting skewness), but we can see that the
+assumptions are not overly violated and could likely be rectified via
+transformations or outlier removal. That said, the current linear models
+do appear to be poor fits, however, with R\^2 values around .25.
 
 ### Running Predictions on the Test Dataset
 
@@ -545,4 +602,3 @@ wine_test_clean_scored <- cbind(wine_test_clean, TARGET)
 hist(wine_test_clean_scored$TARGET)
 
 ```
-
