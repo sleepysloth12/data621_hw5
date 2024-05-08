@@ -42,8 +42,13 @@ wine_test_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/data
 
 ## Part I
 
-#WILL COME BACK AND ADD MORE WORDS (Marjete)
-
+The wine training dataset contains 12,795 observations and 16 elements. The variable types are numeric values represented as integers. There is missing data in the following columns: ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol, STARS. 
+```{r}
+dim(wine_train_raw)
+```
+```{r}
+colSums(is.na(wine_train_raw))
+```
 ```{r}
 summary_stats <- wine_train_raw %>%
   summarise(
@@ -110,7 +115,7 @@ summary_stats <- wine_train_raw %>%
     Variable == "ResidualSugar" ~ "Residual Sugar",
     Variable == "STARS" ~ "STARS",
     Variable == "Sulphates" ~ "Sulphates Content",
-    Variable == "TotalSulfurDioxide" ~ "Total Sulfur Dioxide", 
+    Variable == "TotalSulfurDioxide" ~ "Total Sulfur Dioxide",
     Variable == "VolatileAcidity" ~ "Volatile Acidity",
     Variable == "pH" ~ "pH",
     TRUE ~ Variable
@@ -129,7 +134,6 @@ summary_stats %>%
   )
 
 ```
-
 ```{r}
 train_dat_long = wine_train_raw %>%
   dplyr::select(-INDEX) %>%  
@@ -138,7 +142,7 @@ train_dat_long = wine_train_raw %>%
 train_dat_long <- train_dat_long[complete.cases(train_dat_long$Value), ]
 
 options(repr.plot.width=20, repr.plot.height=20) 
-#why are graphs not changing in size 
+
 ggplot(train_dat_long, aes(x = Value)) +
   geom_histogram(bins = 30, fill = "blue", alpha = 0.7) +
   facet_wrap(~ Variable, scales = "free", ncol = 3) + 
@@ -147,24 +151,18 @@ ggplot(train_dat_long, aes(x = Value)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-```{r}
-#box plot not including the index column
-ggplot(train_dat_long, aes(x = Variable, y = Value)) +
-  geom_boxplot(fill = "blue", alpha = 0.7) +
-  theme_minimal() +
-  labs(title = "Box Plot of Predictor Variables", x = "Variable", y = "Value") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        text = element_text(size = 12)) # Adjust font size for better readability
-```
+- The mean and median are close in value for all variables above suggesting the data is likely symmetrically distributed. Additionally, most variables have low variability in standard deviation.
 
-There is missing data in the following columns: ResidualSugar,
-Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates,
-Alcohol, STARS
+- The following variables have higher variability in Standard Deviation: 'Free Sulfur Dioxide', 'Total Sulfur Dioxide', 'Residual Sugar'
 
-```{r}
+- As seen in the histogram above the the distribution for 'TARGET' is slightly right skewed likely due to the amount of 0 case purchased. This pattern of slight right skew is also present in the variable 'STARS' and 'AcidIndex'.
 
-colSums(is.na(wine_train_raw))
-```
+- The histograms also reflect that all other variables are unimodal and seem to have a normal distribution.
+
+- 'LabelAppeal', Marketing Score indicating the appeal of label design for consumers, 'STARS', wine rating 1-4, and 'AcidIndex', Proprietary method of testing total acidity of wine by using a weighted average, are actually categorical variables. 
+
+- Some variables have negative values which does not make sense in context such as alcohol content.
+
 
 ### Summary Statistics and Distribution
 
