@@ -1,6 +1,6 @@
 ---
 title: 'Data 621 Hw #5'
-author: 'Group #3'
+author: 'Group #3- Coco Donovan, Matthew Roland, Marjete Vucinaj, Jean Jimenez'
 date: "2024-04-18"
 output: pdf_document
 editor_options: 
@@ -42,13 +42,20 @@ wine_test_raw=read.csv(url("https://raw.githubusercontent.com/sleepysloth12/data
 
 ## Part I
 
-The wine training dataset contains 12,795 observations and 16 elements. The variable types are numeric values represented as integers. There is missing data in the following columns: ResidualSugar, Chlorides, FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol, STARS. 
+The wine training dataset contains 12,795 observations and 16 elements.
+The variable types are numeric values represented as integers. There is
+missing data in the following columns: ResidualSugar, Chlorides,
+FreeSulfurDioxide, TotalSulfurDioxide, pH, Sulphates, Alcohol, STARS.
+
 ```{r}
 dim(wine_train_raw)
 ```
+
 ```{r}
+
 colSums(is.na(wine_train_raw))
 ```
+
 ```{r}
 summary_stats <- wine_train_raw %>%
   summarise(
@@ -134,6 +141,7 @@ summary_stats %>%
   )
 
 ```
+
 ```{r}
 train_dat_long = wine_train_raw %>%
   dplyr::select(-INDEX) %>%  
@@ -151,18 +159,30 @@ ggplot(train_dat_long, aes(x = Value)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
-- The mean and median are close in value for all variables above suggesting the data is likely symmetrically distributed. Additionally, most variables have low variability in standard deviation.
+-   The mean and median are close in value for all variables above
+    suggesting the data is likely symmetrically distributed.
+    Additionally, most variables have low variability in standard
+    deviation.
 
-- The following variables have higher variability in Standard Deviation: 'Free Sulfur Dioxide', 'Total Sulfur Dioxide', 'Residual Sugar'
+-   The following variables have higher variability in Standard
+    Deviation: 'Free Sulfur Dioxide', 'Total Sulfur Dioxide', 'Residual
+    Sugar'
 
-- As seen in the histogram above the the distribution for 'TARGET' is slightly right skewed likely due to the amount of 0 case purchased. This pattern of slight right skew is also present in the variable 'STARS' and 'AcidIndex'.
+-   As seen in the histogram above the the distribution for 'TARGET' is
+    slightly right skewed likely due to the amount of 0 case purchased.
+    This pattern of slight right skew is also present in the variable
+    'STARS' and 'AcidIndex'.
 
-- The histograms also reflect that all other variables are unimodal and seem to have a normal distribution.
+-   The histograms also reflect that all other variables are unimodal
+    and seem to have a normal distribution.
 
-- 'LabelAppeal', Marketing Score indicating the appeal of label design for consumers, 'STARS', wine rating 1-4, and 'AcidIndex', Proprietary method of testing total acidity of wine by using a weighted average, are actually categorical variables. 
+-   'LabelAppeal', Marketing Score indicating the appeal of label design
+    for consumers, 'STARS', wine rating 1-4, and 'AcidIndex',
+    Proprietary method of testing total acidity of wine by using a
+    weighted average, are actually categorical variables.
 
-- Some variables have negative values which does not make sense in context such as alcohol content.
-
+-   Some variables have negative values which does not make sense in
+    context such as alcohol content.
 
 ### Summary Statistics and Distribution
 
